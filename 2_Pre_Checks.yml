@@ -1,0 +1,49 @@
+---
+- name: Pre_Checks
+  hosts: iosxr_device
+  connection: network_cli
+  gather_facts: false
+  vars:
+    time: "{{lookup('pipe','date \"+%Y-%m-%d-%H-%M\"')}}"
+    config_dir: "{{lookup('pipe','date \"+%Y-%m-%d\"')}}"
+  tasks:
+  - name: "Pre_Checks: PRE commands capture"
+    iosxr_command:
+      commands:
+        - "{{item}}"
+    with_items:
+      - show version
+      - show platform
+    vars:
+      ansible_command_timeout: 180
+      retries: 2
+    register: pre_cmd_output
+
+  - name: "Pre_Checks: Create Pre_Checks folder"
+    file:
+      path: ./backup/{{ config_dir }}
+      state: directory
+    vars:
+      ansible_command_timeout: 180
+      retries: 2
+    run_once: true
+
+  - name: "Pre_Checks: JSON Query"
+    set_fact:
+      pre_commands_list: "{{ pre_cmd_output.results | json_query(jmesquery) }}"
+    vars:
+      jmesquery: "[*].{Command: item, Show_output: stdout[0]}"
+
+  - name: "Pre_Checks: Saving Output Files"
+    copy:
+      content: "{{ inventory_hostname }}#{{ item.1.Command }}\n{{ item.1.Show_output }}\n"
+      dest: "/app/temp/{{ inventory_hostname }}_Pre_Check_{{ item.1.Command }}.txt"
+    with_indexed_items:
+    - "{{ pre_commands_list }}"
+    
+  - debug:
+      msg: "{{pre_commands_list}}"
+      
+  - debug:
+      msg: "Output#command_output#{{pre_commands_list}}"
+ 

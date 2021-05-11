@@ -1,0 +1,4 @@
+ansible_python_interpreter=/usr/bin/python3
+
+[iosxr_device]
+R6-P1-ASR9912 ansible_host=10.76.5.6 ansible_network_os=iosxr ansible_user=cisco ansible_ssh_pass=cisco@123
